@@ -1,0 +1,916 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Dashboard de Fondeo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: app shell (topbar + sidebar + main) cloned from the reference prop-firm dashboard; dark by default, sun icon switches to light. */
+body { margin: 0; }
+:root {
+  color-scheme: dark;
+  --bg: #0c0d0e;
+  --top: #0f1011;
+  --side: #111213;
+  --card: #161718;
+  --card2: #1d1f21;
+  --line: #232528;
+  --line2: #2e3135;
+  --fg: #eef0f2;
+  --muted: #8a9097;
+  --dim: #5b6168;
+  --blue: #1d7bff;
+  --green: #2bc04f;
+  --amber: #f5a524;
+  --red: #f0544a;
+  --on-accent: #ffffff;
+  --font: "Poppins", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+html.light {
+  color-scheme: light;
+  --bg: #f3f4f6;
+  --top: #ffffff;
+  --side: #ffffff;
+  --card: #ffffff;
+  --card2: #f1f3f5;
+  --line: #e4e7eb;
+  --line2: #d5d9de;
+  --fg: #14171a;
+  --muted: #5f6670;
+  --dim: #9aa1a9;
+  --green: #16a34a;
+  --amber: #d98a00;
+  --red: #dc3b31;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--fg); font: 13px/1.45 var(--font); }
+button, input, select { font: inherit; color: inherit; }
+button { cursor: pointer; background: none; border: 0; }
+:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; border-radius: 6px; }
+.i { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+.num { font-variant-numeric: tabular-nums; }
+.pos { color: var(--green); }
+.neg { color: var(--red); }
+
+/* Topbar */
+.top {
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20;
+  height: 56px; display: flex; align-items: center; gap: 12px;
+  padding-inline: 20px; background: var(--top); border-bottom: 1px solid var(--line);
+}
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--top); }
+.brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 16px; letter-spacing: -0.01em; }
+.brand .mark { width: 30px; height: 30px; border-radius: 9px; display: grid; place-items: center; background: linear-gradient(140deg, var(--blue), #5aa2ff); color: var(--on-accent); }
+.brand .mark .i { width: 17px; height: 17px; stroke-width: 2.4; }
+.top .spacer { flex: 1; }
+.iconbtn { width: 32px; height: 32px; border-radius: 8px; display: grid; place-items: center; color: var(--muted); position: relative; }
+.iconbtn:hover { background: var(--card2); color: var(--fg); }
+.iconbtn .dot { position: absolute; top: 7px; right: 8px; width: 6px; height: 6px; border-radius: 50%; background: var(--red); }
+.avatar { width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; font-weight: 600; font-size: 12px; background: linear-gradient(140deg, #1f6f43, var(--green)); color: #fff; box-shadow: 0 0 0 2px var(--line2); }
+.menu-btn { display: none; }
+
+/* Shell */
+.shell { display: grid; grid-template-columns: 232px minmax(0, 1fr); min-height: calc(100vh - 56px); }
+.side { background: var(--side); border-right: 1px solid var(--line); padding: 18px 14px; position: sticky; top: 56px; height: calc(100vh - 56px); overflow: auto; display: flex; flex-direction: column; gap: 4px; }
+.acct-btn { display: flex; align-items: center; justify-content: center; gap: 8px; height: 38px; border-radius: 9px; background: var(--blue); color: var(--on-accent); font-weight: 600; font-size: 12.5px; margin-bottom: 12px; box-shadow: 0 6px 18px color-mix(in srgb, var(--blue) 35%, transparent); }
+.nav { display: flex; align-items: center; gap: 10px; height: 36px; padding-inline: 10px; border-radius: 8px; color: var(--muted); font-weight: 500; font-size: 12.5px; text-align: left; width: 100%; }
+.nav:hover { color: var(--fg); background: var(--card2); }
+.nav.on { color: var(--fg); background: var(--card2); }
+.nav .ext { margin-left: auto; width: 13px; height: 13px; opacity: .6; }
+.side h4 { margin: 16px 10px 6px; font-size: 10.5px; letter-spacing: .1em; color: var(--muted); font-weight: 600; }
+
+main { padding: 20px 28px 96px; min-width: 0; }
+.wrap { max-width: 1320px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
+.view { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.view[hidden] { display: none; }
+
+/* Breadcrumb row */
+.crumbs { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.back { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px 0 8px; border-radius: 8px; border: 1px solid var(--line); background: var(--card); font-weight: 500; font-size: 12px; }
+.crumbs .spacer { flex: 1; }
+.acct-pill { display: inline-flex; align-items: center; gap: 8px; height: 34px; padding: 0 12px; border-radius: 9px; border: 1px solid var(--line); background: var(--card); font-weight: 500; font-size: 12px; }
+.acct-pill .live { width: 8px; height: 8px; border-radius: 50%; background: var(--green); box-shadow: 0 0 0 3px color-mix(in srgb, var(--green) 25%, transparent); }
+
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 18px; min-width: 0; }
+
+/* Account header */
+.acct-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; position: relative; }
+.acct-head h1 { margin: 0; font-size: 22px; font-weight: 600; letter-spacing: -0.01em; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; text-wrap: balance; }
+.acct-head .meta { color: var(--muted); font-size: 11.5px; margin: 4px 0 12px; }
+.pill { display: inline-flex; align-items: center; gap: 6px; height: 22px; padding: 0 9px; border-radius: 99px; font-size: 11px; font-weight: 600; }
+.pill::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.pill.active { color: var(--blue); background: color-mix(in srgb, var(--blue) 14%, transparent); }
+.pill.passed { color: var(--green); background: color-mix(in srgb, var(--green) 14%, transparent); }
+.pill.failed { color: var(--red); background: color-mix(in srgb, var(--red) 14%, transparent); }
+.cred { display: inline-flex; align-items: center; gap: 8px; height: 30px; padding: 0 10px; border-radius: 8px; color: var(--fg); font-size: 12px; font-weight: 500; border: 1px solid var(--line); }
+.cred:hover { background: var(--card2); }
+.cred .i { width: 14px; height: 14px; color: var(--muted); }
+.cred-pop { margin-top: 10px; display: grid; grid-template-columns: auto 1fr; gap: 6px 16px; padding: 12px 14px; border-radius: 10px; background: var(--card2); font-size: 12px; max-width: 360px; }
+.cred-pop span { color: var(--muted); }
+.phase { text-align: right; font-size: 11.5px; color: var(--muted); display: flex; flex-direction: column; gap: 2px; }
+.phase b { color: var(--fg); font-weight: 600; font-size: 13px; }
+
+/* Tabs */
+.tabs { display: flex; gap: 22px; border-bottom: 1px solid var(--line); overflow-x: auto; }
+.tab { padding: 10px 0; font-weight: 500; font-size: 12.5px; color: var(--muted); border-bottom: 2px solid transparent; margin-bottom: -1px; white-space: nowrap; }
+.tab.on { color: var(--fg); border-color: var(--fg); }
+.tab:hover { color: var(--fg); }
+
+/* Overview */
+.ov { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(300px, 1fr); gap: 16px; align-items: start; }
+.bal-label { font-size: 11.5px; color: var(--muted); font-weight: 500; }
+.bal { display: flex; align-items: baseline; gap: 8px; margin: 2px 0 14px; flex-wrap: wrap; }
+.bal .big { font-size: 26px; font-weight: 600; letter-spacing: -0.01em; }
+.bal .big small { font-size: 13px; font-weight: 500; color: var(--muted); }
+.bal .chg { font-size: 12px; font-weight: 600; }
+.bal .chg-l { font-size: 11px; color: var(--muted); }
+.chart-tools { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+.seg { display: inline-flex; padding: 3px; gap: 2px; border-radius: 9px; background: var(--card2); }
+.seg button { height: 26px; min-width: 34px; padding: 0 9px; border-radius: 7px; font-size: 11px; font-weight: 600; color: var(--muted); }
+.seg button.on { background: var(--line2); color: var(--fg); }
+.zoom { display: flex; gap: 2px; }
+.zoom .iconbtn { width: 28px; height: 28px; }
+.zoom .i { width: 14px; height: 14px; }
+.chart-box { position: relative; height: 290px; }
+.chart-box svg { display: block; width: 100%; height: 100%; }
+.tip { position: absolute; pointer-events: none; padding: 7px 10px; border-radius: 8px; background: var(--card2); border: 1px solid var(--line2); font-size: 11px; white-space: nowrap; box-shadow: 0 8px 24px rgba(0,0,0,.3); }
+.tip b { display: block; font-size: 13px; }
+.legend { display: flex; justify-content: center; gap: 18px; flex-wrap: wrap; margin-top: 10px; font-size: 11px; color: var(--muted); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend i { width: 14px; height: 0; border-top: 2px dashed currentColor; }
+.legend i.solid { border-top-style: solid; }
+
+/* Objectives */
+.obj-card h2 { margin: 0 0 6px; font-size: 16px; font-weight: 700; letter-spacing: -0.01em; }
+.obj { padding-block: 14px; border-bottom: 1px solid var(--line); }
+.obj:last-of-type { border-bottom: 0; }
+.obj-row { display: flex; align-items: center; gap: 8px; }
+.obj-name { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; font-weight: 500; font-size: 12.5px; }
+.obj-name .info { width: 13px; height: 13px; color: var(--dim); }
+.oi { width: 18px; height: 18px; border-radius: 5px; display: grid; place-items: center; flex: none; }
+.oi .i { width: 14px; height: 14px; }
+.oi.blue { color: var(--blue); }
+.oi.amber { background: var(--amber); color: #3a2706; }
+.oi.amber .i { width: 12px; height: 12px; stroke-width: 2.4; }
+.oi.plain { color: var(--muted); }
+.val { font-weight: 700; font-size: 15px; white-space: nowrap; }
+.val .pre { font-size: 9px; margin-right: 3px; vertical-align: 2px; }
+.of { color: var(--muted); font-size: 11.5px; white-space: nowrap; }
+.st { width: 18px; height: 18px; border-radius: 50%; display: grid; place-items: center; flex: none; }
+.st .i { width: 11px; height: 11px; stroke-width: 3.2; }
+.st.ok { background: var(--green); color: #06210f; }
+.st.fail { background: var(--red); color: #fff; }
+.st.pend { background: var(--card2); color: var(--muted); }
+.st.warn { color: var(--amber); }
+.st.warn .i { width: 16px; height: 16px; stroke-width: 2.2; }
+.bar { height: 7px; border-radius: 99px; background: var(--card2); margin-top: 11px; overflow: hidden; }
+.bar > i { display: block; height: 100%; border-radius: inherit; background: var(--green); transition: width .4s ease; }
+.bar.warn > i { background: var(--amber); }
+.bar.fail > i { background: var(--red); }
+.split { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; margin-top: 8px; font-size: 10.5px; color: var(--muted); }
+.split .best.warn { color: var(--amber); }
+.note { display: flex; gap: 6px; align-items: flex-start; margin: 8px 0 0; color: var(--muted); font-size: 10.5px; }
+.note .i { width: 12px; height: 12px; margin-top: 2px; }
+
+/* Calendar */
+.cal-h { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+.cal-nav { display: flex; align-items: center; gap: 6px; }
+.cal-nav b { font-size: 14px; font-weight: 600; min-width: 92px; text-align: center; }
+.cal-sum { font-size: 12px; color: var(--muted); }
+.cal-sum b { font-weight: 600; }
+.cal-scroll { overflow-x: auto; }
+.cal { display: grid; grid-template-columns: repeat(7, minmax(78px, 1fr)) minmax(96px, 1fr); gap: 6px; min-width: 680px; }
+.cal .dow { font-size: 10.5px; color: var(--muted); font-weight: 600; letter-spacing: .06em; text-transform: uppercase; padding: 0 4px 2px; }
+.cd { min-height: 68px; border-radius: 9px; background: var(--card2); padding: 7px 8px; display: flex; flex-direction: column; gap: 2px; }
+.cd.out { background: transparent; }
+.cd .n { font-size: 10.5px; color: var(--muted); }
+.cd b { font-size: 12.5px; font-weight: 600; }
+.cd small { font-size: 10px; color: var(--muted); }
+.cd.wk { border: 1px solid var(--line2); background: var(--card); }
+.cd.today { box-shadow: inset 0 0 0 1px var(--blue); }
+
+/* Tables & stats */
+.tbl-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 12px; min-width: 640px; }
+th { text-align: left; font-weight: 600; color: var(--muted); font-size: 11px; padding: 10px 12px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+td { padding: 10px 12px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+td.r, th.r { text-align: right; }
+tr:last-child td { border-bottom: 0; }
+.side-tag { display: inline-block; padding: 2px 8px; border-radius: 99px; font-size: 10.5px; font-weight: 600; }
+.side-tag.long { color: var(--green); background: color-mix(in srgb, var(--green) 14%, transparent); }
+.side-tag.short { color: var(--red); background: color-mix(in srgb, var(--red) 14%, transparent); }
+.chips { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+.chip { padding: 8px 12px; border-radius: 10px; background: var(--card2); font-size: 11.5px; color: var(--muted); }
+.chip b { color: var(--fg); margin-left: 6px; }
+.stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 12px; }
+.stat { background: var(--card2); border-radius: 12px; padding: 14px; }
+.stat span { font-size: 11px; color: var(--muted); }
+.stat b { display: block; font-size: 20px; font-weight: 600; margin-top: 4px; }
+.stat small { color: var(--muted); font-size: 10.5px; }
+.sec-title { margin: 0 0 14px; font-size: 15px; font-weight: 600; }
+.lvl-now { color: var(--blue); font-weight: 600; }
+
+/* Test panel */
+.fab { position: fixed; right: calc(20px + env(safe-area-inset-right, 0px)); bottom: calc(20px + env(safe-area-inset-bottom, 0px)); z-index: 40; display: inline-flex; align-items: center; gap: 8px; height: 44px; padding: 0 18px; border-radius: 99px; background: var(--blue); color: var(--on-accent); font-weight: 600; font-size: 13px; box-shadow: 0 10px 30px color-mix(in srgb, var(--blue) 40%, transparent); }
+.panel { position: fixed; top: 0; right: 0; bottom: 0; z-index: 50; width: min(420px, 100vw); background: var(--card); border-left: 1px solid var(--line2); transform: translateX(105%); transition: transform .25s ease; overflow-y: auto; padding: calc(18px + env(safe-area-inset-top, 0px)) calc(20px + env(safe-area-inset-right, 0px)) calc(28px + env(safe-area-inset-bottom, 0px)) 20px; box-shadow: -20px 0 50px rgba(0,0,0,.35); }
+.panel.open { transform: none; }
+.panel-h { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 4px; }
+.panel-h h3 { margin: 0; font-size: 17px; font-weight: 600; }
+.panel p.lead { margin: 0 0 14px; color: var(--muted); font-size: 12px; }
+.panel fieldset { border: 0; padding: 0; margin: 0 0 18px; display: grid; gap: 10px; }
+.panel legend { font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); font-weight: 600; margin-bottom: 8px; padding: 0; }
+.g2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.fld { display: grid; gap: 4px; font-size: 11.5px; color: var(--muted); min-width: 0; }
+.fld input, .fld select, .row input { width: 100%; min-width: 0; height: 36px; padding: 0 10px; border-radius: 8px; background: var(--card2); border: 1px solid var(--line2); color: var(--fg); }
+.scen { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.btn { height: 34px; padding: 0 10px; border-radius: 8px; border: 1px solid var(--line2); background: var(--card2); font-size: 11.5px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+.btn:hover { border-color: var(--muted); }
+.btn .i { width: 14px; height: 14px; }
+.btn.g { color: var(--green); } .btn.a { color: var(--amber); } .btn.r { color: var(--red); }
+.rows { display: grid; gap: 6px; }
+.row { display: grid; grid-template-columns: 1fr 1fr 34px; gap: 6px; }
+.row button { height: 36px; border-radius: 8px; color: var(--muted); display: grid; place-items: center; }
+.row button:hover { color: var(--red); background: var(--card2); }
+.rows-h { display: grid; grid-template-columns: 1fr 1fr 34px; gap: 6px; font-size: 10.5px; color: var(--muted); }
+.rows-sum { font-size: 11.5px; color: var(--muted); }
+.actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.toast { position: fixed; left: 50%; bottom: calc(80px + env(safe-area-inset-bottom, 0px)); transform: translate(-50%, 20px); opacity: 0; transition: .2s; z-index: 60; background: var(--card2); border: 1px solid var(--line2); padding: 9px 14px; border-radius: 10px; font-size: 12px; pointer-events: none; }
+.toast.show { opacity: 1; transform: translate(-50%, 0); }
+.scrim { position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 25; }
+
+@media (max-width: 1100px) { .ov { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 900px) {
+  .shell { grid-template-columns: minmax(0, 1fr); }
+  .side { position: fixed; top: calc(56px + env(safe-area-inset-top, 0px)); left: 0; bottom: 0; height: auto; width: 250px; z-index: 30; transform: translateX(-105%); transition: transform .2s; }
+  .side.open { transform: none; }
+  .menu-btn { display: grid; }
+  main { padding: 16px 16px 96px; }
+  .top { padding-inline: 12px; }
+  .top .hide-sm { display: none; }
+  .phase { text-align: left; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <button class="iconbtn menu-btn" id="menuBtn" aria-label="Abrir menú"></button>
+  <div class="brand"><span class="mark" id="markIco"></span><span id="brandName"></span></div>
+  <div class="spacer"></div>
+  <button class="iconbtn hide-sm" aria-label="Guides" data-ico="book"></button>
+  <button class="iconbtn" aria-label="Notifications"><span data-ico-in="bell"></span><span class="dot"></span></button>
+  <button class="iconbtn" id="themeBtn" aria-label="Cambiar tema"></button>
+  <div class="avatar" id="avatar"></div>
+</header>
+
+<div class="shell">
+  <aside class="side" id="side">
+    <button class="acct-btn" id="acctBtn"></button>
+    <button class="nav on" data-nav="Account Overview"><span data-ico-in="grid"></span>Account Overview</button>
+    <button class="nav" data-nav="Personal Settings"><span data-ico-in="user"></span>Personal Settings</button>
+    <button class="nav" data-nav="Billing"><span data-ico-in="card"></span>Billing</button>
+    <button class="nav" data-nav="Payouts"><span data-ico-in="wallet"></span>Payouts</button>
+    <button class="nav" data-nav="My Performance"><span data-ico-in="chart"></span>My Performance</button>
+    <button class="nav" data-nav="Contracts"><span data-ico-in="file"></span>Contracts</button>
+    <button class="nav" data-nav="Customer Support"><span data-ico-in="headset"></span>Customer Support</button>
+    <h4>DOWNLOADS</h4>
+    <button class="nav" data-nav="Tradovate"><span data-ico-in="download"></span>Tradovate<span data-ico-in="ext" data-c="ext"></span></button>
+    <button class="nav" data-nav="NinjaTrader"><span data-ico-in="download"></span>NinjaTrader<span data-ico-in="ext" data-c="ext"></span></button>
+    <button class="nav" data-nav="Rithmic"><span data-ico-in="download"></span>Rithmic<span data-ico-in="ext" data-c="ext"></span></button>
+  </aside>
+
+  <main>
+    <div class="wrap">
+      <div class="crumbs">
+        <button class="back"><span data-ico-in="chevL"></span>Account Overview</button>
+        <div class="spacer"></div>
+        <button class="iconbtn" aria-label="Support" data-ico="headset"></button>
+        <button class="iconbtn" aria-label="Refresh" data-ico="refresh" id="refreshBtn"></button>
+        <button class="iconbtn" aria-label="Share" data-ico="share"></button>
+        <button class="iconbtn" aria-label="Close account" data-ico="xc"></button>
+        <button class="acct-pill"><span class="live"></span><span id="pillId" class="num"></span><span data-ico-in="chevD"></span></button>
+      </div>
+
+      <section class="card acct-head">
+        <div>
+          <h1><span id="traderName"></span><span class="pill" id="statusPill"></span></h1>
+          <div class="meta num" id="acctMeta"></div>
+          <button class="cred" id="credBtn" aria-expanded="false"><span data-ico-in="key"></span>Credentials<span data-ico-in="ext"></span></button>
+          <div class="cred-pop num" id="credPop" hidden></div>
+        </div>
+        <div class="phase"><span>Phase</span><b>Evaluation · Step 1</b><span id="tradingDays"></span></div>
+      </section>
+
+      <nav class="tabs" id="tabs">
+        <button class="tab on" data-tab="overview">Overview</button>
+        <button class="tab" data-tab="trades">Trades</button>
+        <button class="tab" data-tab="calendar">PnL Calendar</button>
+        <button class="tab" data-tab="stats">Statistics</button>
+        <button class="tab" data-tab="scaling">Scaling Plan</button>
+      </nav>
+
+      <div data-view="overview" class="view">
+        <div class="ov">
+          <section class="card">
+            <div class="bal-label">Balance</div>
+            <div class="bal"><span class="big num" id="balBig"></span><span class="chg num" id="balChg"></span><span class="chg-l">today</span></div>
+            <div class="chart-tools">
+              <div class="seg" id="ranges">
+                <button data-r="1D">1D</button><button data-r="1W">1W</button><button data-r="1M" class="on">1M</button><button data-r="All">All</button>
+              </div>
+              <div class="zoom">
+                <button class="iconbtn" id="zin" aria-label="Zoom in" data-ico="zin"></button>
+                <button class="iconbtn" id="zout" aria-label="Zoom out" data-ico="zout"></button>
+              </div>
+            </div>
+            <div class="chart-box" id="chart"></div>
+            <div class="legend">
+              <span class="pos"><i class="solid"></i>Balance</span>
+              <span><i></i>Baseline</span>
+              <span style="color:var(--blue)"><i></i><span id="lgT"></span></span>
+              <span style="color:var(--red)"><i></i><span id="lgL"></span></span>
+            </div>
+          </section>
+          <section class="card obj-card" id="objectives"></section>
+        </div>
+        <section class="card" id="calOverview"></section>
+      </div>
+
+      <section class="card" data-view="trades" hidden></section>
+      <section class="card" data-view="calendar" hidden></section>
+      <section class="card" data-view="stats" hidden></section>
+      <section class="card" data-view="scaling" hidden></section>
+    </div>
+  </main>
+</div>
+
+<button class="fab" id="fab"><span data-ico-in="sliders"></span>Panel de pruebas</button>
+
+<aside class="panel" id="panel" aria-label="Panel de pruebas">
+  <div class="panel-h">
+    <h3>Panel de pruebas</h3>
+    <button class="iconbtn" id="closePanel" aria-label="Cerrar panel" data-ico="x"></button>
+  </div>
+  <p class="lead">Cambia cualquier número y el dashboard se recalcula al instante. Todo es ficticio y se guarda solo en este navegador.</p>
+
+  <fieldset>
+    <legend>Escenarios rápidos</legend>
+    <div class="scen">
+      <button class="btn g" data-scen="pass">Aprobada</button>
+      <button class="btn a" data-scen="cons">Consistencia</button>
+      <button class="btn r" data-scen="fail">Quemada</button>
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend>Marca</legend>
+    <div class="g2">
+      <label class="fld">Empresa<input id="f-company" data-f="company"></label>
+      <label class="fld">Nombre del trader<input id="f-trader" data-f="trader"></label>
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend>Cuenta</legend>
+    <div class="g2">
+      <label class="fld">Programa (botón azul)<input id="f-accountLabel" data-f="accountLabel"></label>
+      <label class="fld">Plan<input id="f-plan" data-f="plan"></label>
+      <label class="fld">Número de cuenta<input id="f-accountId" data-f="accountId"></label>
+      <label class="fld">Moneda<input id="f-currency" data-f="currency"></label>
+      <label class="fld">Balance inicial<input id="f-start" data-f="start" type="number" step="1000"></label>
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend>Reglas</legend>
+    <div class="g2">
+      <label class="fld">Profit target ($)<input id="f-target" data-f="target" type="number" step="100"></label>
+      <label class="fld">Consistencia máx. (%)<input id="f-consMax" data-f="consMax" type="number" step="1"></label>
+      <label class="fld">Pérdida diaria máx. ($)<input id="f-dailyLimit" data-f="dailyLimit" type="number" step="100"></label>
+      <label class="fld">Pérdida máxima ($)<input id="f-maxLoss" data-f="maxLoss" type="number" step="100"></label>
+      <label class="fld">Tipo de drawdown
+        <select id="f-ddType" data-f="ddType"><option value="trailing">Trailing (desde el pico)</option><option value="static">Estático (desde el inicio)</option></select>
+      </label>
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend>Días operados (P&amp;L por día)</legend>
+    <div class="rows-sum num" id="rowsSum"></div>
+    <div class="rows-h"><span>Fecha</span><span>P&amp;L ($)</span><span></span></div>
+    <div class="rows" id="rows"></div>
+    <div class="actions">
+      <button class="btn" id="addDay"><span data-ico-in="plus"></span>Agregar día</button>
+      <button class="btn" id="randomize"><span data-ico-in="shuffle"></span>Aleatorio</button>
+      <button class="btn" id="reset"><span data-ico-in="refresh"></span>Restablecer</button>
+    </div>
+  </fieldset>
+</aside>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const IC = {
+  book: '<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V2H6.5A2.5 2.5 0 0 0 4 4.5v15z"/><path d="M4 19.5A2.5 2.5 0 0 0 6.5 22H20v-5"/>',
+  bell: '<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>',
+  sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M6.3 17.7l-1.4 1.4M19.1 4.9l-1.4 1.4"/>',
+  moon: '<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>',
+  grid: '<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/>',
+  user: '<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',
+  card: '<rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/>',
+  wallet: '<path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"/><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/>',
+  chart: '<path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/>',
+  file: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/>',
+  headset: '<path d="M3 14h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-7a9 9 0 0 1 18 0v7a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3"/>',
+  download: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/>',
+  ext: '<path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>',
+  chevL: '<path d="m15 18-6-6 6-6"/>',
+  chevR: '<path d="m9 18 6-6-6-6"/>',
+  chevD: '<path d="m6 9 6 6 6-6"/>',
+  refresh: '<path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/>',
+  share: '<circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 13.5 6.8 4M15.4 6.5l-6.8 4"/>',
+  xc: '<circle cx="12" cy="12" r="10"/><path d="m15 9-6 6M9 9l6 6"/>',
+  x: '<path d="M18 6 6 18M6 6l12 12"/>',
+  key: '<circle cx="7.5" cy="15.5" r="5.5"/><path d="m21 2-9.6 9.6"/><path d="m15.5 7.5 3 3L22 7l-3-3"/>',
+  target: '<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>',
+  cal: '<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>',
+  down: '<path d="M12 5v14"/><path d="m19 12-7 7-7-7"/>',
+  info: '<circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/>',
+  check: '<path d="M20 6 9 17l-5-5"/>',
+  alert: '<path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4M12 17h.01"/>',
+  clock: '<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>',
+  zin: '<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3M11 8v6M8 11h6"/>',
+  zout: '<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3M8 11h6"/>',
+  menu: '<path d="M4 6h16M4 12h16M4 18h16"/>',
+  sliders: '<path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/>',
+  plus: '<path d="M12 5v14M5 12h14"/>',
+  trash: '<path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>',
+  shuffle: '<path d="M2 18h1.4c1.3 0 2.5-.6 3.3-1.7l6.1-8.6c.7-1.1 2-1.7 3.3-1.7H22"/><path d="m18 2 4 4-4 4"/><path d="M2 6h1.9c1.5 0 2.9.9 3.6 2.2"/><path d="M22 18h-5.9c-1.3 0-2.6-.7-3.3-1.8l-.5-.8"/><path d="m18 14 4 4-4 4"/>',
+  bolt: '<path d="M3 17l6-6 4 4 8-8"/><path d="M14 7h7v7"/>'
+};
+const ico = (n, c = '') => `<svg class="i ${c}" viewBox="0 0 24 24" aria-hidden="true">${IC[n]}</svg>`;
+document.querySelectorAll('[data-ico]').forEach(el => el.innerHTML = ico(el.dataset.ico));
+document.querySelectorAll('[data-ico-in]').forEach(el => el.outerHTML = ico(el.dataset.icoIn, el.dataset.c || ''));
+document.getElementById('menuBtn').innerHTML = ico('menu');
+document.getElementById('markIco').innerHTML = ico('bolt');
+
+/* ---------- Data ---------- */
+const KEY = 'fondeo-dashboard-v1';
+const DEFAULT_DAYS = [
+  ['2026-10-01', 420.50], ['2026-10-02', -310.00], ['2026-10-03', 615.25], ['2026-10-06', -600.00],
+  ['2026-10-07', 280.00], ['2026-10-08', -450.75], ['2026-10-09', -520.00], ['2026-10-10', 330.40],
+  ['2026-10-13', -480.00], ['2026-10-14', -365.00], ['2026-10-15', 7501.10], ['2026-10-16', 210.00],
+  ['2026-10-17', -275.30], ['2026-10-20', 390.00], ['2026-10-21', -180.45], ['2026-10-22', 455.00],
+  ['2026-10-23', -340.20], ['2026-10-24', 125.00], ['2026-10-27', 410.46], ['2026-10-28', -80.00],
+  ['2026-10-29', 2280.00]
+];
+const DEFAULT = {
+  company: 'Tu Empresa', trader: 'Trader Demo', accountLabel: 'Challenge 100K', plan: 'Pro 100K',
+  accountId: '230060001', currency: 'USD', start: 100000, target: 5000, dailyLimit: 2500,
+  maxLoss: 5000, consMax: 40, ddType: 'trailing',
+  days: DEFAULT_DAYS.map(([d, p]) => ({ d, p }))
+};
+const clone = o => JSON.parse(JSON.stringify(o));
+function load() { try { const v = JSON.parse(localStorage.getItem(KEY)); return v && v.days ? { ...clone(DEFAULT), ...v } : null; } catch { return null; } }
+function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch {} }
+let S = load() || clone(DEFAULT);
+const ui = { tab: 'overview', range: '1M', cal: null };
+const RANGES = ['1D', '1W', '1M', 'All'];
+
+/* ---------- Helpers ---------- */
+const MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const parseD = s => { const [y, m, d] = s.split('-').map(Number); return new Date(Date.UTC(y, m - 1, d)); };
+const isoD = t => t.toISOString().slice(0, 10);
+const lbl = s => { const t = parseD(s); return MON[t.getUTCMonth()] + ' ' + t.getUTCDate(); };
+const valid = x => /^\d{4}-\d{2}-\d{2}$/.test(x.d) && Number.isFinite(x.p);
+const nf2 = new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const nf0 = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 });
+const money = (v, d = 0) => (v < 0 ? '-' : '') + '$' + (d ? nf2 : nf0).format(Math.abs(v));
+const sgn = (v, d = 2, cur = true) => (v >= 0 ? '+' : '-') + (cur ? '$' : '') + (d ? nf2 : nf0).format(Math.abs(v));
+const clamp01 = v => Math.max(0, Math.min(1, v || 0));
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+function hash(s) { let h = 2166136261; for (const c of String(s)) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return h >>> 0; }
+function rng(seed) { return () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+const $ = s => document.querySelector(s);
+
+/* ---------- Model ---------- */
+function compute() {
+  const days = S.days.filter(valid).slice().sort((a, b) => a.d < b.d ? -1 : a.d > b.d ? 1 : 0);
+  const start = +S.start || 0;
+  const floorOf = pk => S.ddType === 'trailing' ? pk - S.maxLoss : start - S.maxLoss;
+  let bal = start, peak = start, maxDD = 0, minBal = start;
+  const curve = [{ l: 'Start', v: bal, floor: floorOf(peak) }];
+  for (const x of days) {
+    bal += x.p; peak = Math.max(peak, bal); maxDD = Math.max(maxDD, peak - bal); minBal = Math.min(minBal, bal);
+    curve.push({ l: lbl(x.d), d: x.d, v: bal, floor: floorOf(peak) });
+  }
+  const net = bal - start;
+  const ps = days.map(x => x.p);
+  const best = ps.length ? Math.max(...ps) : 0;
+  const worst = ps.length ? Math.min(...ps) : 0;
+  const lossUsed = S.ddType === 'trailing' ? maxDD : Math.max(0, start - minBal);
+  const worstLoss = Math.max(0, -worst);
+  const cons = net > 0 && best > 0 ? best / net * 100 : 0;
+  const today = days.length ? days[days.length - 1].p : 0;
+  const failed = worstLoss >= S.dailyLimit || lossUsed >= S.maxLoss;
+  const passed = !failed && net >= S.target && cons <= S.consMax;
+  return { days, curve, bal, net, best, worst, worstLoss, lossUsed, maxDD, cons, today, status: failed ? 'failed' : passed ? 'passed' : 'active' };
+}
+
+const SYMS = [
+  { s: 'NQ', m: 20, p: 21450, dp: 2 }, { s: 'ES', m: 50, p: 5925, dp: 2 }, { s: 'MNQ', m: 2, p: 21450, dp: 2 },
+  { s: 'MES', m: 5, p: 5925, dp: 2 }, { s: 'CL', m: 1000, p: 71.4, dp: 2 }, { s: 'GC', m: 100, p: 2745, dp: 1 }
+];
+function tradesFor(day) {
+  const r = rng(hash(day.d + ':' + day.p));
+  const k = 1 + Math.floor(r() * 4);
+  let parts;
+  if (k === 1) parts = [day.p];
+  else {
+    const ws = Array.from({ length: k }, () => r() * 1.4 - 0.3);
+    let sum = ws.reduce((a, b) => a + b, 0);
+    if (Math.abs(sum) < 0.3) { ws[0] += 1; sum += 1; }
+    parts = ws.map(w => Math.round(day.p * w / sum * 100) / 100);
+    parts[k - 1] = Math.round((day.p - parts.slice(0, -1).reduce((a, b) => a + b, 0)) * 100) / 100;
+  }
+  const mins = parts.map(() => 570 + Math.floor(r() * 380)).sort((a, b) => a - b);
+  return parts.map((pnl, i) => {
+    const sy = SYMS[Math.floor(r() * SYMS.length)];
+    const qty = 1 + Math.floor(r() * (sy.m >= 50 ? 3 : 5));
+    const long = r() < 0.55;
+    const entry = sy.p * (1 + (r() - 0.5) * 0.04);
+    const pts = pnl / (sy.m * qty);
+    const exit = long ? entry + pts : entry - pts;
+    const t = String(Math.floor(mins[i] / 60)).padStart(2, '0') + ':' + String(mins[i] % 60).padStart(2, '0');
+    return { d: day.d, t, sym: sy.s, side: long ? 'Long' : 'Short', qty, entry: entry.toFixed(sy.dp), exit: exit.toFixed(sy.dp), pnl };
+  });
+}
+
+function seriesFor(r, M) {
+  const c = M.curve;
+  if (r === '1D') {
+    if (c.length < 2) return [c[0], { ...c[0], l: 'Now' }];
+    const a = c[c.length - 2], b = c[c.length - 1];
+    const rnd = rng(hash(b.d + ':' + b.v));
+    const N = 48, noise = [];
+    let w = 0;
+    for (let i = 0; i <= N; i++) { noise.push(w); w += rnd() - 0.5; }
+    const scale = Math.max(Math.abs(b.v - a.v), S.start * 0.002) * 0.16;
+    const pts = [];
+    for (let i = 0; i <= N; i++) {
+      const t = i / N, m = 570 + Math.round(390 * t);
+      pts.push({ l: Math.floor(m / 60) + ':' + String(m % 60).padStart(2, '0'), v: a.v + (b.v - a.v) * t + (noise[i] - noise[N] * t) * scale, floor: b.floor });
+    }
+    return pts;
+  }
+  const n = r === '1W' ? 6 : r === '1M' ? 23 : c.length;
+  const s = c.slice(-n);
+  return s.length > 1 ? s : [s[0], { ...s[0] }];
+}
+
+/* ---------- Render ---------- */
+let M;
+function render() {
+  M = compute();
+  const st = { active: 'Active', passed: 'Passed', failed: 'Failed' }[M.status];
+  $('#brandName').textContent = S.company;
+  $('#acctBtn').textContent = S.accountLabel;
+  $('#avatar').textContent = (S.trader || '?').split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase();
+  $('#pillId').textContent = S.accountId;
+  $('#traderName').textContent = S.trader;
+  $('#statusPill').className = 'pill ' + M.status;
+  $('#statusPill').textContent = st;
+  $('#acctMeta').textContent = `${S.plan}: ${S.accountId} · ${nf2.format(S.start)} ${S.currency}`;
+  $('#tradingDays').textContent = `${M.days.length} trading days`;
+  $('#credPop').innerHTML = `<span>Login</span><b>${esc(S.accountId)}</b><span>Password</span><b>••••••••••</b><span>Server</span><b>${esc(S.company)}-Demo</b>`;
+
+  const [i, c] = nf2.format(Math.abs(M.bal)).split('.');
+  $('#balBig').innerHTML = `${M.bal < 0 ? '-' : ''}$${i}<small>.${c}</small>`;
+  $('#balChg').textContent = sgn(M.today, 2, false);
+  $('#balChg').className = 'chg num ' + (M.today >= 0 ? 'pos' : 'neg');
+  $('#lgT').textContent = 'Profit Target ' + sgn(S.target, 0);
+  $('#lgL').textContent = 'Max Loss -' + money(S.maxLoss);
+
+  renderObjectives();
+  if (ui.tab === 'overview') { renderChart(); renderCal($('#calOverview')); }
+  if (ui.tab === 'trades') renderTrades();
+  if (ui.tab === 'calendar') renderCal($('[data-view="calendar"]'));
+  if (ui.tab === 'stats') renderStats();
+  if (ui.tab === 'scaling') renderScaling();
+  $('#rowsSum').textContent = `${M.days.length} días · Neto ${sgn(M.net)} · Balance ${money(M.bal, 2)}`;
+}
+
+function stIcon(s) {
+  if (s === 'ok') return `<span class="st ok" title="Cumplido">${ico('check')}</span>`;
+  if (s === 'warn') return `<span class="st warn" title="Atención">${ico('alert')}</span>`;
+  if (s === 'fail') return `<span class="st fail" title="Violado">${ico('x')}</span>`;
+  return `<span class="st pend" title="En progreso">${ico('clock')}</span>`;
+}
+function objRow(o) {
+  return `<div class="obj">
+    <div class="obj-row">
+      <span class="obj-name">${o.icon}${o.name}${o.info ? `<span title="${o.info}">${ico('info', 'info')}</span>` : ''}</span>
+      <span class="val num">${o.pre || ''}${o.val}</span><span class="of num">/ ${o.of}</span>${stIcon(o.st)}
+    </div>
+    <div class="bar ${o.st === 'warn' ? 'warn' : o.st === 'fail' ? 'fail' : ''}"><i style="width:${(clamp01(o.pct) * 100).toFixed(1)}%"></i></div>
+    ${o.extra || ''}
+  </div>`;
+}
+function renderObjectives() {
+  const loss = (used, lim) => used >= lim ? 'fail' : used >= lim * 0.8 ? 'warn' : 'ok';
+  const consSt = M.net <= 0 ? 'pend' : M.cons > S.consMax ? 'warn' : 'ok';
+  const other = M.net - M.best;
+  const rows = [
+    { icon: `<span class="oi blue">${ico('target')}</span>`, name: 'Profit Target', pre: M.net > 0 ? '<span class="pre pos">▲</span>' : '',
+      val: `<span class="${M.net < 0 ? 'neg' : ''}">${money(M.net)}</span>`, of: money(S.target), pct: M.net / S.target, st: M.net >= S.target ? 'ok' : 'pend' },
+    { icon: `<span class="oi amber">${ico('cal')}</span>`, name: 'Consistency', pre: consSt === 'warn' ? `<span class="pre" style="color:var(--amber);font-size:12px">⚠</span>` : '',
+      val: M.cons.toFixed(1) + '%', of: 'max ' + S.consMax + '%', pct: M.cons / 100, st: consSt,
+      extra: M.net > 0 ? `<div class="split num"><span class="best ${consSt}">Best Day: ${money(M.best, 2)} (${M.cons.toFixed(2)}%)</span><span>Other days: ${money(other, 2)} (${(100 - M.cons).toFixed(2)}%)</span></div>` : '' },
+    { icon: `<span class="oi plain">${ico('down')}</span>`, name: 'Daily Loss Limit', info: 'Largest single-day loss in this account',
+      val: money(M.worstLoss), of: money(S.dailyLimit), pct: M.worstLoss / S.dailyLimit, st: loss(M.worstLoss, S.dailyLimit) },
+    { icon: `<span class="oi plain">${ico('down')}</span>`, name: 'Max Loss', info: S.ddType === 'trailing' ? 'Max drawdown from peak balance (trailing)' : 'Max drawdown from starting balance',
+      val: money(M.lossUsed), of: money(S.maxLoss), pct: M.lossUsed / S.maxLoss, st: loss(M.lossUsed, S.maxLoss) }
+  ];
+  $('#objectives').innerHTML = `<h2>Trading Objectives</h2>${rows.map(objRow).join('')}
+    <p class="note">${ico('info')}Calculated from closed trades only, based on your account balance.</p>`;
+}
+
+function renderChart() {
+  const box = $('#chart');
+  const W = Math.max(260, box.clientWidth), H = box.clientHeight || 290;
+  const pts = seriesFor(ui.range, M), n = pts.length;
+  const L = 46, R = 12, T = 14, B = 26;
+  const start = +S.start, tgt = start + S.target;
+  let lo = Math.min(...pts.map(p => p.v), ...pts.map(p => p.floor));
+  let hi = Math.max(...pts.map(p => p.v), tgt, start);
+  const span = Math.max((hi - lo) / start * 100, 0.5);
+  const step = [0.25, 0.5, 1, 2, 2.5, 5, 10, 20, 25, 50, 100].find(s => span / s <= 5) || 100;
+  const kLo = Math.floor(((lo - start) / start * 100) / step), kHi = Math.ceil(((hi - start) / start * 100) / step);
+  lo = start * (1 + kLo * step / 100); hi = start * (1 + kHi * step / 100);
+  const x = i => L + i * (W - L - R) / (n - 1);
+  const y = v => T + (hi - v) / (hi - lo) * (H - T - B);
+  const css = getComputedStyle(document.documentElement);
+  const col = k => css.getPropertyValue(k).trim();
+  let g = `<defs><linearGradient id="ar" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${col('--green')}" stop-opacity=".28"/><stop offset="1" stop-color="${col('--green')}" stop-opacity="0"/></linearGradient></defs>`;
+  for (let k = kLo; k <= kHi; k++) {
+    const v = start * (1 + k * step / 100), yy = y(v).toFixed(1);
+    g += `<line x1="${L}" x2="${W - R}" y1="${yy}" y2="${yy}" stroke="${col('--line')}"/>`;
+    g += `<text x="${L - 8}" y="${+yy + 3.5}" text-anchor="end" font-size="10" fill="${col('--muted')}">${k > 0 ? '+' : ''}${+(k * step).toFixed(2)}%</text>`;
+  }
+  const xs = Math.min(6, n);
+  for (let j = 0; j < xs; j++) {
+    const i = Math.round(j * (n - 1) / Math.max(1, xs - 1));
+    g += `<text x="${x(i).toFixed(1)}" y="${H - 6}" text-anchor="${j === 0 ? 'start' : j === xs - 1 ? 'end' : 'middle'}" font-size="10" fill="${col('--muted')}">${pts[i].l}</text>`;
+  }
+  g += `<line x1="${L}" x2="${W - R}" y1="${y(start)}" y2="${y(start)}" stroke="${col('--muted')}" stroke-dasharray="4 4" opacity=".7"/>`;
+  g += `<line x1="${L}" x2="${W - R}" y1="${y(tgt)}" y2="${y(tgt)}" stroke="${col('--blue')}" stroke-dasharray="4 4"/>`;
+  const fl = pts.map((p, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)} ${y(p.floor).toFixed(1)}`).join(' ');
+  g += `<path d="${fl}" fill="none" stroke="${col('--red')}" stroke-dasharray="4 4"/>`;
+  const line = pts.map((p, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)} ${y(p.v).toFixed(1)}`).join(' ');
+  g += `<path d="${line} L${x(n - 1).toFixed(1)} ${H - B} L${L} ${H - B} Z" fill="url(#ar)"/>`;
+  g += `<path d="${line}" fill="none" stroke="${col('--green')}" stroke-width="2" stroke-linejoin="round"/>`;
+  const pillLbl = (yy, txt, bg, fg) => {
+    const w = txt.length * 5.4 + 14;
+    return `<rect x="${L + 10}" y="${yy - 9}" width="${w}" height="18" rx="4" fill="${bg}"/><text x="${L + 17}" y="${yy + 3.5}" font-size="9.5" font-weight="600" fill="${fg}">${txt}</text>`;
+  };
+  g += pillLbl(y(tgt), 'Profit Target ' + sgn(S.target, 0), col('--blue'), '#fff');
+  g += pillLbl(y(pts[0].floor), 'Max Loss -' + money(S.maxLoss), col('--red'), '#fff');
+  const last = pts[n - 1];
+  g += `<circle cx="${x(n - 1)}" cy="${y(last.v)}" r="7" fill="${col('--green')}" opacity=".2"/><circle cx="${x(n - 1)}" cy="${y(last.v)}" r="3.5" fill="${col('--green')}"/>`;
+  g += `<g id="hov" style="display:none"><line id="hl" y1="${T}" y2="${H - B}" stroke="${col('--muted')}" stroke-dasharray="2 3"/><circle id="hc" r="4" fill="${col('--card')}" stroke="${col('--green')}" stroke-width="2"/></g>`;
+  g += `<rect x="${L}" y="0" width="${W - L - R}" height="${H}" fill="transparent" id="hit"/>`;
+  box.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Balance chart">${g}</svg><div class="tip" id="tip" hidden></div>`;
+  const hit = box.querySelector('#hit'), hov = box.querySelector('#hov'), tip = box.querySelector('#tip');
+  hit.addEventListener('pointermove', e => {
+    const rect = box.getBoundingClientRect();
+    const mx = e.clientX - rect.left;
+    const i = Math.max(0, Math.min(n - 1, Math.round((mx - L) / (W - L - R) * (n - 1))));
+    const p = pts[i], px = x(i), py = y(p.v);
+    hov.style.display = '';
+    box.querySelector('#hl').setAttribute('x1', px); box.querySelector('#hl').setAttribute('x2', px);
+    box.querySelector('#hc').setAttribute('cx', px); box.querySelector('#hc').setAttribute('cy', py);
+    const d = p.v - start;
+    tip.innerHTML = `${p.l}<b class="num">${money(p.v, 2)}</b><span class="num ${d >= 0 ? 'pos' : 'neg'}">${sgn(d)} (${(d / start * 100).toFixed(2)}%)</span>`;
+    tip.hidden = false;
+    const tw = tip.offsetWidth;
+    tip.style.left = Math.min(W - tw - 4, Math.max(4, px + 12 + tw > W ? px - tw - 12 : px + 12)) + 'px';
+    tip.style.top = Math.max(4, py - 54) + 'px';
+  });
+  hit.addEventListener('pointerleave', () => { hov.style.display = 'none'; tip.hidden = true; });
+}
+
+function renderCal(el) {
+  const map = {}, cnt = {};
+  M.days.forEach(x => { map[x.d] = (map[x.d] || 0) + x.p; cnt[x.d] = (cnt[x.d] || 0) + tradesFor(x).length; });
+  if (!ui.cal) ui.cal = (M.days.length ? M.days[M.days.length - 1].d : isoD(new Date())).slice(0, 7);
+  const [y, m] = ui.cal.split('-').map(Number);
+  const lead = new Date(Date.UTC(y, m - 1, 1)).getUTCDay();
+  const dim = new Date(Date.UTC(y, m, 0)).getUTCDate();
+  const cells = [];
+  for (let i = 0; i < lead; i++) cells.push(null);
+  for (let d = 1; d <= dim; d++) cells.push(d);
+  while (cells.length % 7) cells.push(null);
+  const keys = Object.keys(map).filter(k => k.startsWith(ui.cal));
+  const mTot = keys.reduce((a, k) => a + map[k], 0);
+  const maxAbs = Math.max(1, ...keys.map(k => Math.abs(map[k])));
+  const lastD = M.days.length ? M.days[M.days.length - 1].d : '';
+  let h = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat','Week'].map(d => `<div class="dow">${d}</div>`).join('');
+  for (let w = 0; w < cells.length; w += 7) {
+    let wt = 0, wd = 0;
+    for (const d of cells.slice(w, w + 7)) {
+      if (d === null) { h += '<div class="cd out"></div>'; continue; }
+      const k = `${ui.cal}-${String(d).padStart(2, '0')}`;
+      if (k in map) {
+        const p = map[k]; wt += p; wd++;
+        const pct = Math.round(10 + 32 * Math.abs(p) / maxAbs);
+        h += `<div class="cd${k === lastD ? ' today' : ''}" style="background:color-mix(in srgb, var(${p >= 0 ? '--green' : '--red'}) ${pct}%, var(--card2))"><span class="n">${d}</span><b class="num">${sgn(p, 0)}</b><small>${cnt[k]} trade${cnt[k] > 1 ? 's' : ''}</small></div>`;
+      } else h += `<div class="cd"><span class="n">${d}</span></div>`;
+    }
+    h += `<div class="cd wk"><span class="n">Week ${w / 7 + 1}</span><b class="num ${wt > 0 ? 'pos' : wt < 0 ? 'neg' : ''}">${wd ? sgn(wt, 0) : '$0'}</b><small>${wd} day${wd === 1 ? '' : 's'}</small></div>`;
+  }
+  el.innerHTML = `<div class="cal-h">
+      <div class="cal-nav"><button class="iconbtn" data-cal="-1" aria-label="Previous month">${ico('chevL')}</button><b>${MON[m - 1]} ${y}</b><button class="iconbtn" data-cal="1" aria-label="Next month">${ico('chevR')}</button></div>
+      <div class="cal-sum">Monthly P&amp;L <b class="num ${mTot >= 0 ? 'pos' : 'neg'}">${sgn(mTot)}</b> · ${keys.length} trading days</div>
+    </div><div class="cal-scroll"><div class="cal">${h}</div></div>`;
+}
+
+function allTrades() { return M.days.flatMap(tradesFor); }
+function renderTrades() {
+  const tr = allTrades().reverse();
+  const wins = tr.filter(t => t.pnl > 0).length;
+  $('[data-view="trades"]').innerHTML = `<h3 class="sec-title">Closed trades</h3>
+    <div class="chips num"><span class="chip">Trades<b>${tr.length}</b></span><span class="chip">Win rate<b>${tr.length ? (wins / tr.length * 100).toFixed(1) : 0}%</b></span><span class="chip">Net P&amp;L<b class="${M.net >= 0 ? 'pos' : 'neg'}">${sgn(M.net)}</b></span></div>
+    <div class="tbl-wrap"><table class="num"><thead><tr><th>Date</th><th>Time</th><th>Symbol</th><th>Side</th><th class="r">Qty</th><th class="r">Entry</th><th class="r">Exit</th><th class="r">P&amp;L</th></tr></thead><tbody>
+    ${tr.map(t => `<tr><td>${lbl(t.d)}</td><td>${t.t}</td><td><b>${t.sym}</b></td><td><span class="side-tag ${t.side.toLowerCase()}">${t.side}</span></td><td class="r">${t.qty}</td><td class="r">${t.entry}</td><td class="r">${t.exit}</td><td class="r ${t.pnl >= 0 ? 'pos' : 'neg'}">${sgn(t.pnl)}</td></tr>`).join('') || '<tr><td colspan="8">No trades yet.</td></tr>'}
+    </tbody></table></div>`;
+}
+
+function renderStats() {
+  const tr = allTrades(), ps = M.days.map(d => d.p);
+  const wDays = ps.filter(p => p > 0), lDays = ps.filter(p => p < 0);
+  const gw = tr.filter(t => t.pnl > 0).reduce((a, t) => a + t.pnl, 0), gl = -tr.filter(t => t.pnl < 0).reduce((a, t) => a + t.pnl, 0);
+  const avg = a => a.length ? a.reduce((x, y) => x + y, 0) / a.length : 0;
+  const tiles = [
+    ['Net P&L', `<span class="${M.net >= 0 ? 'pos' : 'neg'}">${sgn(M.net)}</span>`, `${(M.net / S.start * 100).toFixed(2)}% return`],
+    ['Winning days', ps.length ? (wDays.length / ps.length * 100).toFixed(1) + '%' : '0%', `${wDays.length} of ${ps.length} days`],
+    ['Trade win rate', tr.length ? (tr.filter(t => t.pnl > 0).length / tr.length * 100).toFixed(1) + '%' : '0%', `${tr.length} trades`],
+    ['Profit factor', gl ? (gw / gl).toFixed(2) : '—', 'Gross win / gross loss'],
+    ['Avg winning day', `<span class="pos">${sgn(avg(wDays))}</span>`, ''],
+    ['Avg losing day', `<span class="neg">${sgn(avg(lDays))}</span>`, ''],
+    ['Best day', `<span class="pos">${sgn(M.best)}</span>`, `${M.cons.toFixed(1)}% of profit`],
+    ['Worst day', `<span class="neg">${sgn(M.worst)}</span>`, `Limit ${money(S.dailyLimit)}`],
+    ['Max drawdown', money(M.maxDD, 2), 'From peak balance'],
+    ['Avg trades / day', ps.length ? (tr.length / ps.length).toFixed(1) : '0', '']
+  ];
+  $('[data-view="stats"]').innerHTML = `<h3 class="sec-title">Statistics</h3><div class="stats num">${tiles.map(([a, b, c]) => `<div class="stat"><span>${a}</span><b>${b}</b><small>${c}</small></div>`).join('')}</div>`;
+}
+
+function renderScaling() {
+  const lv = [1, 1.5, 2, 3, 4];
+  const req = S.start * 0.10;
+  const prog = clamp01(M.net / req);
+  $('[data-view="scaling"]').innerHTML = `<h3 class="sec-title">Scaling Plan</h3>
+    <p style="margin:0 0 14px;color:var(--muted);max-width:65ch">Grow the account by reaching +10% net profit and two approved payouts at each level. Progress to Level 2: <b class="num" style="color:var(--fg)">${money(Math.max(0, M.net))} / ${money(req)}</b></p>
+    <div class="bar" style="margin:0 0 18px;max-width:520px"><i style="width:${(prog * 100).toFixed(1)}%"></i></div>
+    <div class="tbl-wrap"><table class="num"><thead><tr><th>Level</th><th class="r">Account size</th><th class="r">Max contracts</th><th class="r">Profit split</th><th>Requirement</th><th>Status</th></tr></thead><tbody>
+    ${lv.map((f, i) => `<tr><td>Level ${i + 1}</td><td class="r">${money(S.start * f)}</td><td class="r">${Math.round(5 * f)}</td><td class="r">${80 + i * 5}%</td><td>${i ? '+10% · 2 payouts' : 'Pass evaluation'}</td><td>${i === 0 ? '<span class="lvl-now">Current</span>' : '<span style="color:var(--muted)">Locked</span>'}</td></tr>`).join('')}
+    </tbody></table></div>`;
+}
+
+/* ---------- Panel ---------- */
+function renderPanel() {
+  document.querySelectorAll('[data-f]').forEach(el => el.value = S[el.dataset.f]);
+  $('#rows').innerHTML = S.days.map((x, i) => `<div class="row">
+      <input type="date" id="d-${i}" data-i="${i}" data-k="d" value="${esc(x.d)}" aria-label="Fecha día ${i + 1}">
+      <input type="number" step="0.01" id="p-${i}" data-i="${i}" data-k="p" value="${Number.isFinite(x.p) ? x.p : ''}" aria-label="P&L día ${i + 1}">
+      <button data-del="${i}" aria-label="Eliminar día">${ico('trash')}</button></div>`).join('');
+}
+const NUMF = ['start', 'target', 'dailyLimit', 'maxLoss', 'consMax'];
+document.querySelectorAll('[data-f]').forEach(el => el.addEventListener('input', () => {
+  const f = el.dataset.f;
+  S[f] = NUMF.includes(f) ? (parseFloat(el.value) || 0) : el.value;
+  save(); render();
+}));
+$('#rows').addEventListener('input', e => {
+  const t = e.target; if (!t.dataset.k) return;
+  S.days[+t.dataset.i][t.dataset.k] = t.dataset.k === 'p' ? parseFloat(t.value) : t.value;
+  save(); render();
+});
+$('#rows').addEventListener('click', e => {
+  const b = e.target.closest('[data-del]'); if (!b) return;
+  S.days.splice(+b.dataset.del, 1); save(); renderPanel(); render();
+});
+function nextWeekday(s) { const t = parseD(s); do t.setUTCDate(t.getUTCDate() + 1); while ([0, 6].includes(t.getUTCDay())); return isoD(t); }
+$('#addDay').addEventListener('click', () => {
+  const v = S.days.filter(valid).map(x => x.d).sort();
+  S.days.push({ d: v.length ? nextWeekday(v[v.length - 1]) : isoD(new Date()), p: 0 });
+  save(); renderPanel(); render();
+  const last = document.getElementById('p-' + (S.days.length - 1)); if (last) { last.focus(); last.select(); }
+});
+
+function tradingDates(n, end) {
+  const out = [], t = parseD(end);
+  while ([0, 6].includes(t.getUTCDay())) t.setUTCDate(t.getUTCDate() - 1);
+  while (out.length < n) { if (![0, 6].includes(t.getUTCDay())) out.unshift(isoD(t)); t.setUTCDate(t.getUTCDate() - 1); }
+  return out;
+}
+const gauss = () => { let u = 0, v = 0; while (!u) u = Math.random(); while (!v) v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
+const r2 = v => Math.round(v * 100) / 100;
+function scenario(kind) {
+  const end = isoD(new Date());
+  const n = 16 + Math.floor(Math.random() * 7);
+  const dates = tradingDates(n, end);
+  let ps;
+  if (kind === 'pass') {
+    for (let tries = 0; tries < 300; tries++) {
+      ps = dates.map(() => r2(S.target / n * 1.3 + gauss() * S.target / n * 1.6));
+      ps = ps.map(p => Math.max(p, -S.dailyLimit * 0.6));
+      const net = ps.reduce((a, b) => a + b, 0), best = Math.max(...ps);
+      let bal = 0, pk = 0, dd = 0; ps.forEach(p => { bal += p; pk = Math.max(pk, bal); dd = Math.max(dd, pk - bal); });
+      if (net >= S.target * 1.05 && best / net * 100 <= S.consMax * 0.9 && dd < S.maxLoss * 0.7) break;
+    }
+  } else if (kind === 'cons') {
+    ps = dates.map(() => r2(gauss() * S.target / n * 1.4));
+    ps = ps.map(p => Math.max(p, -S.dailyLimit * 0.5));
+    ps[Math.floor(n * 0.6)] = r2(S.target * (1.1 + Math.random() * 0.5));
+  } else if (kind === 'fail') {
+    ps = dates.map(() => r2(-S.maxLoss / n * 0.9 + gauss() * S.maxLoss / n * 1.3));
+    ps = ps.map(p => Math.max(p, -S.dailyLimit * 0.9));
+    let bal = 0, pk = 0, i = 0;
+    for (; i < ps.length; i++) { bal += ps[i]; pk = Math.max(pk, bal); if (pk - bal >= S.maxLoss) break; }
+    if (i >= ps.length) ps[ps.length - 1] = r2(-(S.maxLoss - (pk - bal)) - 50 - Math.max(0, ps[ps.length - 1]) + ps[ps.length - 1]);
+    else ps = ps.slice(0, i + 1);
+  } else {
+    ps = dates.map(() => r2(S.target / n * 0.4 + gauss() * S.target / n * 2));
+  }
+  S.days = ps.map((p, i) => ({ d: dates[i], p }));
+  ui.cal = null; save(); renderPanel(); render();
+  toast({ pass: 'Escenario: cuenta aprobada', cons: 'Escenario: falla de consistencia', fail: 'Escenario: cuenta quemada', rand: 'Datos aleatorios generados' }[kind]);
+}
+document.querySelectorAll('[data-scen]').forEach(b => b.addEventListener('click', () => scenario(b.dataset.scen)));
+$('#randomize').addEventListener('click', () => scenario('rand'));
+$('#reset').addEventListener('click', () => { S = clone(DEFAULT); ui.cal = null; save(); renderPanel(); render(); toast('Datos de ejemplo restablecidos'); });
+
+/* ---------- Chrome interactions ---------- */
+let toastT;
+function toast(msg) { const t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 1800); }
+const panel = $('#panel');
+$('#fab').addEventListener('click', () => { panel.classList.add('open'); $('#f-company').focus(); });
+$('#closePanel').addEventListener('click', () => panel.classList.remove('open'));
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { panel.classList.remove('open'); closeSide(); } });
+
+$('#tabs').addEventListener('click', e => {
+  const b = e.target.closest('[data-tab]'); if (!b) return;
+  ui.tab = b.dataset.tab;
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('on', t === b));
+  document.querySelectorAll('[data-view]').forEach(v => v.hidden = v.dataset.view !== ui.tab);
+  render();
+});
+function setRange(r) { ui.range = r; document.querySelectorAll('#ranges button').forEach(b => b.classList.toggle('on', b.dataset.r === r)); renderChart(); }
+$('#ranges').addEventListener('click', e => { const b = e.target.closest('[data-r]'); if (b) setRange(b.dataset.r); });
+$('#zin').addEventListener('click', () => setRange(RANGES[Math.max(0, RANGES.indexOf(ui.range) - 1)]));
+$('#zout').addEventListener('click', () => setRange(RANGES[Math.min(RANGES.length - 1, RANGES.indexOf(ui.range) + 1)]));
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-cal]'); if (!b) return;
+  const [y, m] = ui.cal.split('-').map(Number);
+  const t = new Date(Date.UTC(y, m - 1 + +b.dataset.cal, 1));
+  ui.cal = isoD(t).slice(0, 7); render();
+});
+$('#credBtn').addEventListener('click', () => { const p = $('#credPop'); p.hidden = !p.hidden; $('#credBtn').setAttribute('aria-expanded', String(!p.hidden)); });
+$('#refreshBtn').addEventListener('click', () => { render(); toast('Datos actualizados'); });
+
+function setTheme(light) {
+  document.documentElement.classList.toggle('light', light);
+  $('#themeBtn').innerHTML = ico(light ? 'moon' : 'sun');
+  try { localStorage.setItem(KEY + '-theme', light ? 'light' : 'dark'); } catch {}
+  if (M) render();
+}
+$('#themeBtn').addEventListener('click', () => setTheme(!document.documentElement.classList.contains('light')));
+
+const side = $('#side');
+let scrim;
+function closeSide() { side.classList.remove('open'); if (scrim) { scrim.remove(); scrim = null; } }
+$('#menuBtn').addEventListener('click', () => {
+  if (side.classList.contains('open')) return closeSide();
+  side.classList.add('open');
+  scrim = document.createElement('div'); scrim.className = 'scrim'; scrim.onclick = closeSide; document.body.appendChild(scrim);
+});
+side.addEventListener('click', e => {
+  const b = e.target.closest('[data-nav]'); if (!b) return;
+  document.querySelectorAll('.nav').forEach(n => n.classList.toggle('on', n === b));
+  if (b.dataset.nav !== 'Account Overview') toast(`“${b.dataset.nav}” no está incluido en esta demo`);
+  closeSide();
+});
+
+let theme = 'dark';
+try { theme = localStorage.getItem(KEY + '-theme') || 'dark'; } catch {}
+setTheme(theme === 'light');
+renderPanel();
+render();
+new ResizeObserver(() => { if (ui.tab === 'overview') renderChart(); }).observe($('#chart'));
+</script>
+</body>
+</html>
